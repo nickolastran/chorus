@@ -1,13 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+// Album, artist, review, profile and search pages stay public on purpose —
+// a shareable review link has to open for someone who isn't signed in.
+const PRIVATE_PREFIXES = ["/dashboard", "/feed", "/settings"];
+
 export async function middleware(request: NextRequest) {
-  // 1. Create the response object early so we can modify its headers
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
+  const response = NextResponse.next({ request: { headers: request.headers } });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,9 +18,9 @@ export async function middleware(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            // IMPORTANT: Update the Request (so the server sees it now)
+            // Update the Request (so the server sees it now)…
             request.cookies.set(name, value);
-            // IMPORTANT: Update the Response (so the browser saves it)
+            // …and the Response (so the browser saves it).
             response.cookies.set(name, value, options);
           });
         },
@@ -29,26 +28,27 @@ export async function middleware(request: NextRequest) {
     },
   );
 
-  // 2. Refresh the session
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // 3. Logic: If logged in & on landing page -> Redirect to Dashboard
-  if (user && request.nextUrl.pathname === "/") {
+  const { pathname } = request.nextUrl;
+
+  if (user && pathname === "/") {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // 4. Logic: If NOT logged in & on dashboard -> Redirect to Login
-  if (!user && request.nextUrl.pathname.startsWith("/dashboard")) {
-    return NextResponse.redirect(new URL("/login", request.url));
+  if (!user && PRIVATE_PREFIXES.some((p) => pathname.startsWith(p))) {
+    const login = new URL("/login", request.url);
+    // Come back here once they're signed in.
+    login.searchParams.set("next", pathname);
+    return NextResponse.redirect(login);
   }
 
   return response;
 }
 
 export const config = {
-  // Apply to all routes except static assets
   matcher: [
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
