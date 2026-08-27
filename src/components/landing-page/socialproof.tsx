@@ -15,15 +15,20 @@ const PARTNERS = [
 export default function SocialProof() {
   return (
     <section className="py-24 border-t border-white/5 bg-[#080808]">
-      <div className="container mx-auto px-6">
-        <p className="text-center text-[10px] font-bold tracking-[0.4em] text-muted-foreground uppercase mb-16">
-          Supported Platforms & Integrations
-        </p>
-        <div className="flex flex-wrap justify-center gap-x-16 gap-y-10 opacity-30 grayscale hover:grayscale-0 transition-all">
-          {PARTNERS.map((partner) => (
+      <p className="text-center text-[10px] font-bold tracking-[0.4em] text-muted-foreground uppercase mb-16 px-6">
+        Supported Platforms &amp; Integrations
+      </p>
+
+      {/* Edges fade out so items enter/exit instead of popping */}
+      <div className="group relative overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
+        {/* List is duplicated so translating -50% loops seamlessly.
+            Spacing lives in px-8 on each item (not gap) to keep both halves identical. */}
+        <div className="flex w-max animate-marquee motion-reduce:animate-none group-hover:[animation-play-state:paused]">
+          {[...PARTNERS, ...PARTNERS].map((partner, i) => (
             <span
-              key={partner}
-              className="text-lg font-black tracking-tighter text-white"
+              key={i}
+              aria-hidden={i >= PARTNERS.length}
+              className="shrink-0 px-8 text-lg font-black tracking-tighter text-white/40 transition-colors hover:text-white"
             >
               {partner}
             </span>

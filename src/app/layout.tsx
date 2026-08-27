@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Manrope } from "next/font/google";
+import "@fontsource/metropolis/latin-400.css";
+import "@fontsource/metropolis/latin-500.css";
+import "@fontsource/metropolis/latin-600.css";
+import "@fontsource/metropolis/latin-700.css";
+import "@fontsource/metropolis/latin-800.css";
+import "@fontsource/metropolis/latin-900.css";
 import "./globals.css";
-
-const manrope = Manrope({
-  subsets: ["latin"],
-  variable: "--font-manrope",
-});
 
 export const metadata: Metadata = {
   title: "Chorus",
@@ -18,7 +18,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`dark ${manrope.variable}`}>
+    <html lang="en" className="dark">
       <body className="font-sans">{children}</body>
     </html>
   );
