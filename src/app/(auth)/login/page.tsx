@@ -6,11 +6,13 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { FcGoogle } from "react-icons/fc";
 import { createBrowserClient } from "@supabase/ssr";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  // Middleware parks the original destination here when it bounces you.
+  const next = useSearchParams().get("next");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,8 +45,8 @@ export default function LoginPage() {
       // 2. CRITICAL STEP: Refresh the router to update server cookies
       router.refresh();
 
-      // 3. Redirect to Dashboard
-      router.push("/dashboard");
+      // 3. Back to wherever they were headed
+      router.push(next && next.startsWith("/") ? next : "/dashboard");
     }
   };
 
@@ -116,5 +118,14 @@ export default function LoginPage() {
         </p>
       </div>
     </>
+  );
+}
+
+// useSearchParams needs a Suspense boundary to keep the shell prerenderable.
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }
