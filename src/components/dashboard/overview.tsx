@@ -23,9 +23,9 @@ export default function DashboardOverview({
     <div className="space-y-12 pb-20">
       <HorizontalSection title="New Album Releases" items={newAlbums} />
       <HorizontalSection title="New Song Releases" items={newSongs} isCircle />
-      <HorizontalSection title="Top 50 Albums" items={topAlbums} showRank />
+      <HorizontalSection title="Popular Albums" items={topAlbums} showRank />
       <HorizontalSection
-        title="Top 50 Songs"
+        title="Popular Songs"
         items={topSongs}
         showRank
         isCircle
