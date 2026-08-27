@@ -1,18 +1,61 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { FcGoogle } from "react-icons/fc";
-import { login } from "../actions";
+import { createBrowserClient } from "@supabase/ssr";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 
-export default function LoginPage() {
+function LoginForm() {
+  const router = useRouter();
+  // Middleware parks the original destination here when it bounces you.
+  const next = useSearchParams().get("next");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Initialize Supabase Client
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  );
+
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    // Get data from the form
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    // 1. Log in with Supabase
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError) {
+      setError(signInError.message);
+      setLoading(false);
+    } else {
+      // 2. CRITICAL STEP: Refresh the router to update server cookies
+      router.refresh();
+
+      // 3. Back to wherever they were headed
+      router.push(next && next.startsWith("/") ? next : "/dashboard");
+    }
+  };
+
   return (
     <>
       <h1 className="text-3xl font-bold text-center mb-8 tracking-tight">
         Log in to Chorus
       </h1>
 
-      {/* Google Button (Standard Reference Size: h-12) */}
       <Button
         variant="outline"
         className="w-full border-[#727272] hover:border-white bg-transparent h-12 rounded-full font-bold flex gap-3 mb-8 transition-all"
@@ -30,7 +73,15 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <form action={login} className="space-y-4">
+      {/* Show Error Message if login fails */}
+      {error && (
+        <div className="mb-4 p-3 rounded bg-red-500/10 border border-red-500/50 text-red-500 text-sm font-medium text-center">
+          {error}
+        </div>
+      )}
+
+      {/* Changed form action to onSubmit */}
+      <form onSubmit={handleLogin} className="space-y-4">
         <div className="space-y-2">
           <label className="text-sm font-bold ml-1">Email address</label>
           <Input
@@ -46,9 +97,12 @@ export default function LoginPage() {
           <PasswordInput name="password" required placeholder="Password" />
         </div>
 
-        {/* Primary Button: Changed to h-12 to match Google button */}
-        <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold h-12 rounded-full text-base mt-4 transition-transform active:scale-95 shadow-lg shadow-purple-900/20">
-          Log In
+        <Button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold h-12 rounded-full text-base mt-4 transition-transform active:scale-95 shadow-lg shadow-purple-900/20 disabled:opacity-50"
+        >
+          {loading ? "Logging in..." : "Log In"}
         </Button>
       </form>
 
@@ -64,5 +118,14 @@ export default function LoginPage() {
         </p>
       </div>
     </>
+  );
+}
+
+// useSearchParams needs a Suspense boundary to keep the shell prerenderable.
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

@@ -1,58 +1,112 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PasswordInput } from "@/components/ui/password-input";
+import { PasswordInput } from "@/components/ui/password-input"; // Assuming you have this component
+import { createBrowserClient } from "@supabase/ssr";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { FcGoogle } from "react-icons/fc";
-import { signup } from "../actions";
 
 export default function SignupPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  );
+
+  const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    const { error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        // Redirect to a specific page after email verification if needed
+        // emailRedirectTo: `${location.origin}/auth/callback`,
+      },
+    });
+
+    if (signUpError) {
+      setError(signUpError.message);
+      setLoading(false);
+    } else {
+      // 1. Refresh router to sync session
+      router.refresh();
+      // 2. Redirect to dashboard (or a "Verify Email" page if you require verification)
+      router.push("/dashboard");
+    }
+  };
+
   return (
     <>
       <h1 className="text-3xl font-bold text-center mb-8 tracking-tight">
-        Sign up to Chorus
+        Create an Account
       </h1>
 
-      <form action={signup} className="space-y-6">
-        <div className="space-y-2">
-          <label className="text-sm font-bold ml-1">
-            What&apos;s your email?
-          </label>
-          <Input
-            name="email"
-            type="email"
-            required
-            placeholder="name@domain.com"
-            className="bg-[#121212] border-[#727272] h-12 rounded-md focus:border-white transition-all"
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="text-sm font-bold ml-1">Create a password</label>
-          <PasswordInput name="password" required placeholder="Password" />
-        </div>
-
-        {/* Primary Button: Changed to h-12 to match Google button */}
-        <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold h-12 rounded-full text-base shadow-lg shadow-purple-900/20 transition-transform active:scale-95">
-          Sign up
-        </Button>
-      </form>
-
-      <div className="relative my-8 text-center">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-[#292929]"></span>
-        </div>
-        <span className="relative bg-[#121212] px-4 text-sm font-bold">or</span>
-      </div>
-
-      {/* Google Button (Standard Reference Size: h-12) */}
       <Button
         variant="outline"
-        className="w-full border-[#727272] hover:border-white bg-transparent h-12 rounded-full font-bold flex gap-3 transition-all"
+        className="w-full border-[#727272] hover:border-white bg-transparent h-12 rounded-full font-bold flex gap-3 mb-8 transition-all"
       >
         <FcGoogle className="w-5 h-5" />
         Sign up with Google
       </Button>
 
-      <div className="mt-12 pt-8 border-t border-[#292929] text-center">
+      <div className="relative mb-8">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-[#292929]"></span>
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-[#121212] px-2 text-[#A7A7A7] font-bold">or</span>
+        </div>
+      </div>
+
+      {error && (
+        <div className="mb-4 p-3 rounded bg-red-500/10 border border-red-500/50 text-red-500 text-sm font-medium text-center">
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSignup} className="space-y-4">
+        <div className="space-y-2">
+          <label className="text-sm font-bold ml-1">Email address</label>
+          <Input
+            name="email"
+            type="email"
+            required
+            placeholder="name@example.com"
+            className="bg-[#121212] border-[#727272] h-12 focus:border-white rounded-md transition-all"
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-bold ml-1">Password</label>
+          <PasswordInput
+            name="password"
+            required
+            placeholder="Create a password"
+          />
+        </div>
+
+        <Button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold h-12 rounded-full text-base mt-4 transition-transform active:scale-95 shadow-lg shadow-purple-900/20 disabled:opacity-50"
+        >
+          {loading ? "Creating account..." : "Sign Up"}
+        </Button>
+      </form>
+
+      <div className="mt-8 text-center border-t border-[#292929] pt-8">
         <p className="text-[#A7A7A7]">
           Already have an account?{" "}
           <Link
